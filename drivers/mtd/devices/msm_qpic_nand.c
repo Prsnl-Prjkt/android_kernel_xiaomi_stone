@@ -1944,7 +1944,7 @@ free_dma:
 			if (last_pos < ecc_bytes_percw_in_bits)
 				num_zero_bits++;
 
-			if (num_zero_bits > MAX_ECC_BIT_FLIPS) {
+			if (num_zero_bits > info->flash_dev.ecc_capability) {
 				*erased_page = false;
 				goto free_mem;
 			}
@@ -1955,8 +1955,8 @@ free_dma:
 		num_zero_bits = last_pos = next_pos = 0;
 		ecc_temp += chip->ecc_parity_bytes;
 	}
-
-	if ((n == cwperpage) && (num_zero_bits <= MAX_ECC_BIT_FLIPS))
+	if ((n == cwperpage) &&
+	    (num_zero_bits <= info->flash_dev.ecc_capability))
 		*erased_page = true;
 free_mem:
 	kfree(ecc);
@@ -2581,7 +2581,7 @@ free_dma:
 			if (last_pos < ecc_bytes_percw_in_bits)
 				num_zero_bits++;
 
-			if (num_zero_bits > MAX_ECC_BIT_FLIPS) {
+			if (num_zero_bits > info->flash_dev.ecc_capability) {
 				*erased_page = false;
 				goto free_mem;
 			}
@@ -2593,7 +2593,8 @@ free_dma:
 		ecc_temp += chip->ecc_parity_bytes;
 	}
 
-	if ((n == cwperpage) && (num_zero_bits <= MAX_ECC_BIT_FLIPS))
+	if ((n == cwperpage) &&
+	    (num_zero_bits <= info->flash_dev.ecc_capability))
 		*erased_page = true;
 free_mem:
 	kfree(ecc);
