@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2017-2021 The Linux Foundation. All rights reserved.
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022, 2025 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -1076,7 +1076,8 @@ static QDF_STATUS p2p_mgmt_tx(struct tx_action_context *tx_ctx,
 	mgmt_param.vdev_id = tx_ctx->vdev_id;
 	mgmt_param.pdata = frame;
 	if (tx_ctx->chan)
-		chanfreq = (uint16_t)wlan_chan_to_freq(tx_ctx->chan);
+		chanfreq = tx_ctx->chan;
+
 	mgmt_param.chanfreq = chanfreq;
 
 	mgmt_param.qdf_ctx = wlan_psoc_get_qdf_dev(psoc);

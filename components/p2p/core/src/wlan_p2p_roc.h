@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2017-2019 The Linux Foundation. All rights reserved.
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023, 2025 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -95,7 +95,7 @@ struct p2p_roc_context {
 	uint32_t vdev_id;
 	uint32_t scan_id;
 	void *tx_ctx;
-	uint8_t chan;
+	qdf_freq_t chan;
 	uint8_t phy_mode;
 	uint32_t duration;
 	enum roc_type roc_type;
