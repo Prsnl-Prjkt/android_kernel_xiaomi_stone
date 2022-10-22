@@ -60,7 +60,7 @@ static struct nvmem_cell *nvmem_cell;
 static int download_mode;
 static struct kobject dload_kobj;
 
-static int in_panic;
+int in_panic = 0;
 static int dload_type = SCM_DLOAD_BOTHDUMPS;
 static void *dload_mode_addr;
 static bool dload_mode_enabled;
@@ -431,12 +431,18 @@ static void msm_restart_prepare(const char *cmd)
 	else
 		qpnp_pon_system_pwr_off(PON_POWER_OFF_HARD_RESET);
 
-	if (cmd != NULL) {
+	if (in_panic) {
+		qpnp_pon_set_restart_reason(PON_RESTART_REASON_PANIC);
+	} else if (cmd != NULL) {
 		if (!strncmp(cmd, "bootloader", 10)) {
 			reason = PON_RESTART_REASON_BOOTLOADER;
 			__raw_writel(0x77665500, restart_reason);
 		} else if (!strncmp(cmd, "recovery", 8)) {
 			reason = PON_RESTART_REASON_RECOVERY;
+			__raw_writel(0x77665502, restart_reason);
+		} else if (!strncmp(cmd, "exaid", 5)) {
+			qpnp_pon_set_restart_reason(
+				PON_RESTART_REASON_EXAID);
 			__raw_writel(0x77665502, restart_reason);
 		} else if (!strcmp(cmd, "rtc")) {
 			reason = PON_RESTART_REASON_RTC;
@@ -462,8 +468,12 @@ static void msm_restart_prepare(const char *cmd)
 			if (0)
 				enable_emergency_dload_mode();
 		} else {
+			qpnp_pon_set_restart_reason(PON_RESTART_REASON_NORMAL);
 			__raw_writel(0x77665501, restart_reason);
 		}
+	} else {
+		qpnp_pon_set_restart_reason(PON_RESTART_REASON_NORMAL);
+		__raw_writel(0x77665501, restart_reason);
 
 		if (reason && nvmem_cell)
 			nvmem_cell_write(nvmem_cell, &reason, sizeof(reason));

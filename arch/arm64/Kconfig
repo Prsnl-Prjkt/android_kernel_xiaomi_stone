@@ -1886,6 +1886,13 @@ config BUILD_ARM64_DT_OVERLAY
 	  required flags to add DT overlay in the
 	  compilation.
 
+config BOOT_INFO
+	bool "Boot information from bootloader"
+	default y
+	help
+	  On embedded linux device, we try to collect more information from
+	  bootloader to kernel. eg. powerup reason.
+
 config TLB_CONF_HANDLER
 	bool "enable handler for TLB conflict"
 	help
