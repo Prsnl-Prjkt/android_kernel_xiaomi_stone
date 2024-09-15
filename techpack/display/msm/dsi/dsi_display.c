@@ -22,6 +22,7 @@
 #include "dsi_pwr.h"
 #include "sde_dbg.h"
 #include "dsi_parser.h"
+#include <video/mipi_display.h>
 #include "mi_dsi_display.h"
 
 #ifdef CONFIG_DRM_SDE_EXPO
@@ -3485,6 +3486,9 @@ static ssize_t dsi_host_transfer(struct mipi_dsi_host *host,
 		if ((msg->flags & MIPI_DSI_MSG_CMD_DMA_SCHED) &&
 				(display->enabled))
 			cmd_flags |= DSI_CTRL_CMD_CUSTOM_DMA_SCHED;
+
+		if (msg->type == MIPI_DSI_DCS_READ)
+			cmd_flags |= DSI_CTRL_CMD_READ;
 
 		rc = dsi_ctrl_cmd_transfer(display->ctrl[ctrl_idx].ctrl, msg,
 				&cmd_flags);
