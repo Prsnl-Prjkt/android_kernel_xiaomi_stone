@@ -118,3 +118,5 @@
 			<2054400>,
 			<2208000>;
 };
+
+#include "moonstone-touchscreen.dts"
