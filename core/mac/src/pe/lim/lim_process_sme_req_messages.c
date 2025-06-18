@@ -1903,6 +1903,8 @@ void lim_parse_tpe_ie(struct mac_context *mac, struct pe_session *session,
 	uint16_t bw_val, ch_width;
 	qdf_freq_t curr_op_freq, curr_freq;
 	enum reg_6g_client_type client_mobility_type;
+	enum reg_6g_ap_type ap_power_type_6g;
+	uint16_t reg_max = 0, psd_power = 0;
 	struct ch_params ch_params = {0};
 	tDot11fIEtransmit_power_env single_tpe;
 	/*
@@ -1978,6 +1980,25 @@ void lim_parse_tpe_ie(struct mac_context *mac, struct pe_session *session,
 
 	curr_op_freq = session->curr_op_freq;
 	bw_val = wlan_reg_get_bw_value(session->ch_width);
+
+	if (psd_set) {
+		if (wlan_reg_is_6ghz_chan_freq(curr_op_freq)) {
+			ap_power_type_6g = session->best_6g_power_type;
+
+			wlan_reg_get_client_power_for_connecting_ap(
+						mac->pdev, ap_power_type_6g,
+						curr_op_freq, true, &reg_max, &psd_power);
+
+			/* If reg rules don't support psd power, ignore PSD
+			 * TPE IE
+			 */
+			if (!psd_power) {
+				pe_debug_rl("reg rule doesn't support psd for %d ap type %d",
+					    curr_op_freq, ap_power_type_6g);
+				psd_set = false;
+			}
+		}
+	}
 
 	if (non_psd_set && !psd_set) {
 		single_tpe = tpe_ies[non_psd_index];
@@ -2059,7 +2080,9 @@ void lim_parse_tpe_ie(struct mac_context *mac, struct pe_session *session,
 		single_tpe = tpe_ies[non_psd_index];
 		vdev_mlme->reg_tpc_obj.eirp_power =
 			single_tpe.tx_power[single_tpe.max_tx_pwr_count];
-		vdev_mlme->reg_tpc_obj.is_psd_power = false;
+		pe_debug("eirp_power %d", vdev_mlme->reg_tpc_obj.eirp_power);
+		if (!psd_set)
+			vdev_mlme->reg_tpc_obj.is_psd_power = false;
 	}
 }
 
