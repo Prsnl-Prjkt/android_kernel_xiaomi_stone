@@ -54,6 +54,7 @@
 #define CHG_BAT_CURR_2450MA     2450
 #define CHG_BAT_CURR_3920MA    3920
 #define CHG_BAT_CURR_4000MA     4000
+#define CHG_BAT_CURR_5000MA     5000
 #define CHG_BAT_CURR_5400MA     5400
 #define CHG_BAT_CURR_6000MA     6000
 
@@ -805,6 +806,31 @@ static int  get_batt_temp_thermal_curr(struct usbpd_pm *pdpm)
 }
 
 extern int get_usbpd_verifed_state(void);
+
+static int get_jeita_current(struct usbpd_pm *pdpm, int pd_auth, int cycle_volt)
+{
+    int temp = pdpm->bat_temp;
+    int vbat = pdpm->sw.vbat_volt;
+
+    if (temp <= CHG_BAT_TEMP_10)
+        return CHG_BAT_CURR_2450MA;
+    else if (temp <= CHG_BAT_TEMP_15)
+        return CHG_BAT_CURR_3920MA;
+    else if (temp < CHG_BAT_TEMP_48) {
+        if (pd_auth) {
+            if (vbat <= cycle_volt)
+                return CHG_BAT_CURR_5400MA;
+            else if (vbat <= 4440)
+                return CHG_BAT_CURR_5000MA;
+            else
+                return CHG_BAT_CURR_4000MA;
+        } else {
+            return CHG_BAT_CURR_5400MA;
+        }
+    }
+    return CHG_BAT_CURR_2450MA;
+}
+
 static int battery_sw_jeita(struct usbpd_pm *pdpm)
 {
     int jeita_curr = 0;
@@ -821,23 +847,7 @@ static int battery_sw_jeita(struct usbpd_pm *pdpm)
 
     if (pdpm->bat_temp >= CHG_BAT_TEMP_MIN && pdpm->bat_temp < CHG_BAT_TEMP_48) {
         pdpm->pps_temp_flag = 1;
-        if (pdpm->bat_temp <= CHG_BAT_TEMP_10)
-            jeita_curr  = CHG_BAT_CURR_2450MA;
-        else if (pdpm->bat_temp > CHG_BAT_TEMP_10 && pdpm->bat_temp <= CHG_BAT_TEMP_15)
-            jeita_curr  =  CHG_BAT_CURR_3920MA;
-        else if (pdpm->bat_temp > CHG_BAT_TEMP_15 && pdpm->bat_temp < CHG_BAT_TEMP_48) {
-            if(pd_auth) {
-                if( pdpm->sw.vbat_volt <= cycle_volt )
-                    jeita_curr  =  CHG_BAT_CURR_6000MA;
-                else if ( pdpm->sw.vbat_volt > cycle_volt && pdpm->sw.vbat_volt <= 4440 )
-                    jeita_curr  =  CHG_BAT_CURR_5400MA;
-                else
-                    jeita_curr  =  CHG_BAT_CURR_4000MA;
-            } else
-                jeita_curr  =  CHG_BAT_CURR_5400MA;
-        }
-        else
-            jeita_curr  = CHG_BAT_CURR_2450MA;
+        jeita_curr = get_jeita_current(pdpm, pd_auth, cycle_volt);
 
     	// Apply the power profile limits (30W, 15W, 8W)
         int fast_mode = fast_chg_get_mode(); 
@@ -857,7 +867,7 @@ static int battery_sw_jeita(struct usbpd_pm *pdpm)
         }
 
         if (pdpm->batt_auth != 1)
-            jeita_curr = 2000;
+            jeita_curr = 4000;
 
         if(pdpm->therm_curr < 2000)
             pdpm->pps_temp_flag = 0;
