@@ -75,28 +75,20 @@ static inline bool wg_check_packet_protocol(struct sk_buff *skb)
 
 static inline void wg_reset_packet(struct sk_buff *skb, bool encapsulating)
 {
+	const int pfmemalloc = skb->pfmemalloc;
+	u32 hash = skb->hash;
 	u8 l4_hash = skb->l4_hash;
 	u8 sw_hash = skb->sw_hash;
-	u32 hash = skb->hash;
+
 	skb_scrub_packet(skb, true);
 	memset(&skb->headers_start, 0,
 	       offsetof(struct sk_buff, headers_end) -
 		       offsetof(struct sk_buff, headers_start));
-
-	/* ANDROID:
-	 * Due to attempts to keep the ABI stable for struct sk_buff, the new
-	 * fields were incorrectly added _AFTER_ the headers_end field, which
-	 * requires that we manually copy the fields here from the old to the
-	 * new one.
-	 * Be sure to add any new field that is added in the
-	 * ANDROID_KABI_REPLACE() macros below here as well.
-	 */
-	skb->scm_io_uring = 0;
-
+	skb->pfmemalloc = pfmemalloc;
 	if (encapsulating) {
+		skb->hash = hash;
 		skb->l4_hash = l4_hash;
 		skb->sw_hash = sw_hash;
-		skb->hash = hash;
 	}
 	skb->queue_mapping = 0;
 	skb->nohdr = 0;
@@ -130,17 +122,20 @@ static inline int wg_cpumask_choose_online(int *stored_cpu, unsigned int id)
 	return cpu;
 }
 
-/* This function is racy, in the sense that it's called while last_cpu is
- * unlocked, so it could return the same CPU twice. Adding locking or using
- * atomic sequence numbers is slower though, and the consequences of racing are
- * harmless, so live with it.
+/* This function is racy, in the sense that next is unlocked, so it could return
+ * the same CPU twice. A race-free version of this would be to instead store an
+ * atomic sequence number, do an increment-and-return, and then iterate through
+ * every possible CPU until we get to that index -- choose_cpu. However that's
+ * a bit slower, and it doesn't seem like this potential race actually
+ * introduces any performance loss, so we live with it.
  */
-static inline int wg_cpumask_next_online(int *last_cpu)
+static inline int wg_cpumask_next_online(int *next)
 {
-	int cpu = cpumask_next(READ_ONCE(*last_cpu), cpu_online_mask);
-	if (cpu >= nr_cpu_ids)
-		cpu = cpumask_first(cpu_online_mask);
-	WRITE_ONCE(*last_cpu, cpu);
+	int cpu = *next;
+
+	while (unlikely(!cpumask_test_cpu(cpu, cpu_online_mask)))
+		cpu = cpumask_next(cpu, cpu_online_mask) % nr_cpumask_bits;
+	*next = cpumask_next(cpu, cpu_online_mask) % nr_cpumask_bits;
 	return cpu;
 }
 
@@ -169,7 +164,7 @@ static inline void wg_prev_queue_drop_peeked(struct prev_queue *queue)
 
 static inline int wg_queue_enqueue_per_device_and_peer(
 	struct crypt_queue *device_queue, struct prev_queue *peer_queue,
-	struct sk_buff *skb, struct workqueue_struct *wq)
+	struct sk_buff *skb, struct workqueue_struct *wq, int *next_cpu)
 {
 	int cpu;
 
@@ -183,7 +178,7 @@ static inline int wg_queue_enqueue_per_device_and_peer(
 	/* Then we queue it up in the device queue, which consumes the
 	 * packet as soon as it can.
 	 */
-	cpu = wg_cpumask_next_online(&device_queue->last_cpu);
+	cpu = wg_cpumask_next_online(next_cpu);
 	if (unlikely(ptr_ring_produce_bh(&device_queue->ring, skb)))
 		return -EPIPE;
 	queue_work_on(cpu, wq, &per_cpu_ptr(device_queue->worker, cpu)->work);
