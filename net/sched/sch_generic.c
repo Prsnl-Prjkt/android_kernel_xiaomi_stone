@@ -32,7 +32,8 @@
 #include <net/xfrm.h>
 
 /* Qdisc to use by default */
-const struct Qdisc_ops *default_qdisc_ops = &pfifo_fast_ops;
+extern struct Qdisc_ops cake_qdisc_ops;
+const struct Qdisc_ops *default_qdisc_ops = &cake_qdisc_ops;
 EXPORT_SYMBOL(default_qdisc_ops);
 
 static void qdisc_maybe_clear_missed(struct Qdisc *q,
