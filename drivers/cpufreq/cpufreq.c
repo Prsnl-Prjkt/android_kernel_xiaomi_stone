@@ -804,6 +804,12 @@ static ssize_t store_scaling_governor(struct cpufreq_policy *policy,
 	char str_governor[16];
 	int ret;
 
+	/* Forbid init & sh from changing CPU Governor By Default */
+	if (!strncmp(current->comm, "init", 4) || !strncmp(current->comm, "sh", 2)) {
+		pr_warn("CPufreq: 'init' or 'sh' tried to change governor, blocked!\n");
+		return count;
+	}
+
 	ret = sscanf(buf, "%15s", str_governor);
 	if (ret != 1)
 		return -EINVAL;
