@@ -64,7 +64,7 @@ struct screen_monitor sm;
 #endif
 
 #ifdef CONFIG_HQ_QGKI
-static atomic_t switch_mode = ATOMIC_INIT(-1);
+static atomic_t switch_mode = ATOMIC_INIT(15);
 static atomic_t temp_state = ATOMIC_INIT(0);
 static char boost_buf[128];
 const char *board_sensor;
@@ -1839,8 +1839,8 @@ thermal_sconfig_store(struct device *dev,
 	return len;
 }
 
-static DEVICE_ATTR(sconfig, 0664,
-		   thermal_sconfig_show, thermal_sconfig_store);
+static DEVICE_ATTR(sconfig, 0444,
+		   thermal_sconfig_show, NULL);
 
 static ssize_t
 thermal_boost_show(struct device *dev,
