@@ -1822,7 +1822,7 @@ static ssize_t
 thermal_sconfig_show(struct device *dev,
 				      struct device_attribute *attr, char *buf)
 {
-	return snprintf(buf, PAGE_SIZE, "%d\n", atomic_read(&switch_mode));
+	return snprintf(buf, PAGE_SIZE, "%d\n", 15);
 }
 
 
@@ -1830,11 +1830,7 @@ static ssize_t
 thermal_sconfig_store(struct device *dev,
 				      struct device_attribute *attr, const char *buf, size_t len)
 {
-	int val = -1;
-
-	val = simple_strtol(buf, NULL, 10);
-
-	atomic_set(&switch_mode, val);
+	atomic_set(&switch_mode, 15);
 
 	return len;
 }
