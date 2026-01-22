@@ -154,6 +154,9 @@ out/
 #
 Android.bp
 
-# Ignoring compile script and out dir
-compile.sh
+# Ignoring out dir
 out/
+
+# Ignore ouput zip files and log build
+log.txt
+files/
