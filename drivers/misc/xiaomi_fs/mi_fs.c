@@ -70,7 +70,7 @@ void read_cpumaxfreq(char *cpumaxfreq_buf)
 	//find max freq cpu
 	while (i < core_count) {
 		memset(buf, 0, sizeof(buf));
-		snprintf(path, sizeof(path), "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq", i);
+		snprintf(path, sizeof(path), "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_max_freq", i);
 		read_file(path, buf, sizeof(buf));
 		if (simple_strtoul(buf, NULL, 0) > cpumaxfreq)
 			cpumaxfreq = simple_strtoul(buf, NULL, 0);
